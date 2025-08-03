@@ -1,13 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import EditIcon from '../icons/EditIcon';
 import TrashIcon from '../icons/TrashIcon';
 import { User, UserLevel } from '../Login';
 import Pagination from '../Pagination';
 import { useToast } from '../../hooks/useToast';
+import DownloadIcon from '../icons/DownloadIcon';
+import UploadIcon from '../icons/UploadIcon';
 
 interface SettingsProps {
     users: User[];
     onUsersUpdate: (users: User[]) => void;
+    onExportData: () => void;
+    onImportData: (data: any) => void;
 }
 
 const getLevelColor = (level: UserLevel) => {
@@ -20,13 +24,14 @@ const getLevelColor = (level: UserLevel) => {
     return colors[level] || 'bg-slate-600 text-slate-200';
 };
 
-const SettingsManagement: React.FC<SettingsProps> = ({ users, onUsersUpdate }) => {
+const SettingsManagement: React.FC<SettingsProps> = ({ users, onUsersUpdate, onExportData, onImportData }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<User | null>(null);
     const [formData, setFormData] = useState({ id: '', password: '', level: 'Kasir' as UserLevel });
     const [currentPage, setCurrentPage] = useState(1);
     const { addToast } = useToast();
     const ITEMS_PER_PAGE = 10;
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const totalPages = Math.ceil(users.length / ITEMS_PER_PAGE);
     const currentUsers = users.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
@@ -105,53 +110,98 @@ const SettingsManagement: React.FC<SettingsProps> = ({ users, onUsersUpdate }) =
             addToast(`Pengguna '${userId}' berhasil dihapus.`, 'success');
         }
     };
+    
+    const handleImportClick = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        if (file.type !== 'application/json') {
+            addToast('File tidak valid. Harap pilih file .json yang diekspor sebelumnya.', 'error');
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const text = e.target?.result;
+                if (typeof text !== 'string') throw new Error("File could not be read");
+                
+                const data = JSON.parse(text);
+                const requiredKeys = ['users', 'customers', 'bahanList', 'employees', 'orders', 'expenses'];
+                const hasAllKeys = requiredKeys.every(key => key in data);
+
+                if (!hasAllKeys) {
+                    addToast('Format file impor tidak sesuai. Data tidak lengkap.', 'error');
+                    return;
+                }
+
+                if (window.confirm('PERINGATAN: Mengimpor data akan menimpa semua data yang ada saat ini. Apakah Anda yakin ingin melanjutkan?')) {
+                    onImportData(data);
+                    addToast('Data berhasil diimpor! Data akan diperbarui sepenuhnya setelah Anda me-refresh halaman.', 'success');
+                }
+            } catch (error) {
+                console.error("Error parsing JSON file:", error);
+                addToast('Gagal memproses file. Pastikan file dalam format JSON yang benar.', 'error');
+            } finally {
+                if (fileInputRef.current) {
+                    fileInputRef.current.value = '';
+                }
+            }
+        };
+        reader.readAsText(file);
+    };
 
     return (
-        <div className="bg-slate-800/50 p-6 rounded-lg border border-slate-700 h-full flex flex-col">
-            <div className="flex justify-between items-center mb-6 flex-shrink-0">
-                <h2 className="text-xl font-semibold text-white">Manajemen Pengguna</h2>
-                <button
-                    onClick={() => handleOpenModal(null)}
-                    className="bg-sky-600 hover:bg-sky-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-300 flex items-center"
-                >
-                    Tambah Pengguna
-                </button>
-            </div>
-            <div className="flex-1 overflow-y-auto">
-                 <table className="w-full text-sm text-left text-slate-300">
-                    <thead className="text-xs text-slate-400 uppercase bg-slate-700/50 sticky top-0 backdrop-blur-sm">
-                        <tr>
-                            <th scope="col" className="px-6 py-3">ID Pengguna</th>
-                            <th scope="col" className="px-6 py-3">Level</th>
-                            <th scope="col" className="px-6 py-3">Kata Sandi</th>
-                            <th scope="col" className="px-6 py-3 text-center">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-700">
-                        {currentUsers.map((user) => (
-                            <tr key={user.id} className="hover:bg-slate-700/50 transition-colors duration-200">
-                                <th scope="row" className="px-6 py-4 font-medium text-white whitespace-nowrap">{user.id}</th>
-                                <td className="px-6 py-4">
-                                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getLevelColor(user.level)}`}>
-                                        {user.level}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4 text-slate-400 italic">Terenkripsi</td>
-                                <td className="px-6 py-4 text-center space-x-3">
-                                    <button onClick={() => handleOpenModal(user)} className="text-sky-400 hover:text-sky-300 transition-colors p-1">
-                                        <EditIcon className="w-5 h-5" />
-                                    </button>
-                                    <button onClick={() => handleDelete(user.id)} className="text-red-500 hover:text-red-400 transition-colors p-1">
-                                        <TrashIcon className="w-5 h-5" />
-                                    </button>
-                                </td>
+        <div className="space-y-8">
+            <div className="bg-slate-800/50 p-6 rounded-lg border border-slate-700 flex flex-col">
+                <div className="flex justify-between items-center mb-6 flex-shrink-0">
+                    <h2 className="text-xl font-semibold text-white">Manajemen Pengguna</h2>
+                    <button
+                        onClick={() => handleOpenModal(null)}
+                        className="bg-sky-600 hover:bg-sky-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-300 flex items-center"
+                    >
+                        Tambah Pengguna
+                    </button>
+                </div>
+                <div className="flex-1 overflow-y-auto">
+                     <table className="w-full text-sm text-left text-slate-300">
+                        <thead className="text-xs text-slate-400 uppercase bg-slate-700/50 sticky top-0 backdrop-blur-sm">
+                            <tr>
+                                <th scope="col" className="px-6 py-3">ID Pengguna</th>
+                                <th scope="col" className="px-6 py-3">Level</th>
+                                <th scope="col" className="px-6 py-3">Kata Sandi</th>
+                                <th scope="col" className="px-6 py-3 text-center">Aksi</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody className="divide-y divide-slate-700">
+                            {currentUsers.map((user) => (
+                                <tr key={user.id} className="hover:bg-slate-700/50 transition-colors duration-200">
+                                    <th scope="row" className="px-6 py-4 font-medium text-white whitespace-nowrap">{user.id}</th>
+                                    <td className="px-6 py-4">
+                                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getLevelColor(user.level)}`}>
+                                            {user.level}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 text-slate-400 italic">Terenkripsi</td>
+                                    <td className="px-6 py-4 text-center space-x-3">
+                                        <button onClick={() => handleOpenModal(user)} className="text-sky-400 hover:text-sky-300 transition-colors p-1">
+                                            <EditIcon className="w-5 h-5" />
+                                        </button>
+                                        <button onClick={() => handleDelete(user.id)} className="text-red-500 hover:text-red-400 transition-colors p-1">
+                                            <TrashIcon className="w-5 h-5" />
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+                <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
             </div>
-
-            <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
 
             {isModalOpen && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 transition-opacity duration-300" onClick={handleCloseModal}>
@@ -196,6 +246,37 @@ const SettingsManagement: React.FC<SettingsProps> = ({ users, onUsersUpdate }) =
                     </div>
                 </div>
             )}
+            
+            <div className="bg-slate-800/50 p-6 rounded-lg border border-slate-700">
+                <h2 className="text-xl font-semibold text-white mb-4">Manajemen Data Aplikasi</h2>
+                <p className="text-slate-400 mb-6 text-sm">
+                    Ekspor data Anda untuk membuat cadangan, atau impor cadangan untuk memulihkan data.
+                    Mengimpor akan menimpa semua data yang ada saat ini.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4">
+                    <button
+                        onClick={onExportData}
+                        className="flex-1 flex items-center justify-center gap-2 bg-sky-600 hover:bg-sky-700 text-white font-bold py-3 px-4 rounded-lg transition-colors duration-300"
+                    >
+                        <DownloadIcon className="w-5 h-5"/>
+                        Ekspor Data ke File
+                    </button>
+                    <button
+                        onClick={handleImportClick}
+                        className="flex-1 flex items-center justify-center gap-2 bg-slate-700 hover:bg-slate-600 text-slate-300 font-bold py-3 px-4 rounded-lg transition-colors duration-300"
+                    >
+                        <UploadIcon className="w-5 h-5"/>
+                        Impor Data dari File
+                    </button>
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleFileChange}
+                        className="hidden"
+                        accept="application/json"
+                    />
+                </div>
+            </div>
         </div>
     );
 };
