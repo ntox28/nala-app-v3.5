@@ -8,6 +8,7 @@ import { Employee } from './components/employees/EmployeeManagement';
 import { Expense } from './components/expenses/ExpenseManagement';
 import { ToastProvider } from './hooks/useToast';
 import ToastContainer from './components/toasts/ToastContainer';
+import useLocalStorage from './hooks/useLocalStorage';
 
 
 const initialUsers: User[] = [
@@ -83,12 +84,13 @@ const initialOrders: Order[] = [
 
 const App: React.FC = () => {
   const [loggedInUser, setLoggedInUser] = useState<User | null>(null);
-  const [users, setUsers] = useState<User[]>(initialUsers);
-  const [customers, setCustomers] = useState<Customer[]>(initialCustomers);
-  const [bahanList, setBahanList] = useState<Bahan[]>(initialBahan);
-  const [employees, setEmployees] = useState<Employee[]>(initialEmployees);
-  const [orders, setOrders] = useState<Order[]>(initialOrders);
-  const [expenses, setExpenses] = useState<Expense[]>(initialExpenses);
+
+  const [users, setUsers] = useLocalStorage<User[]>('nala-app:users', initialUsers);
+  const [customers, setCustomers] = useLocalStorage<Customer[]>('nala-app:customers', initialCustomers);
+  const [bahanList, setBahanList] = useLocalStorage<Bahan[]>('nala-app:bahan', initialBahan);
+  const [employees, setEmployees] = useLocalStorage<Employee[]>('nala-app:employees', initialEmployees);
+  const [orders, setOrders] = useLocalStorage<Order[]>('nala-app:orders', initialOrders);
+  const [expenses, setExpenses] = useLocalStorage<Expense[]>('nala-app:expenses', initialExpenses);
 
 
   const handleLoginSuccess = (user: User) => {
