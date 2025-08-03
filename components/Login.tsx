@@ -44,8 +44,8 @@ const LoginComponent: React.FC<LoginProps> = ({ onLoginSuccess, users }) => {
     return (
         <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-2xl shadow-2xl w-full max-w-md p-8 space-y-6">
             <div className="text-center">
-                <h1 className="text-3xl font-bold text-white tracking-tight">Selamat Datang Kembali</h1>
-                <p className="text-slate-400 mt-2">Masuk untuk melanjutkan ke akun Anda.</p>
+                <h1 className="text-3xl font-bold text-white tracking-tight">Nalamedia Digital Printing</h1>
+                <p className="text-slate-400 mt-2">Masuk dengan akunmu untuk melanjutkan.</p>
             </div>
             
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -62,7 +62,7 @@ const LoginComponent: React.FC<LoginProps> = ({ onLoginSuccess, users }) => {
                         value={userId}
                         onChange={(e) => setUserId(e.target.value)}
                         className="w-full pl-10 pr-4 py-3 bg-slate-900/50 border border-slate-700 rounded-md text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition duration-300"
-                        placeholder="ID Pengguna"
+                        placeholder="Masukkan IDmu"
                     />
                 </div>
                 <div className="relative">
@@ -78,7 +78,7 @@ const LoginComponent: React.FC<LoginProps> = ({ onLoginSuccess, users }) => {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         className="w-full pl-10 pr-4 py-3 bg-slate-900/50 border border-slate-700 rounded-md text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition duration-300"
-                        placeholder="Kata Sandi"
+                        placeholder="Masukkan Passordmu"
                     />
                 </div>
 
